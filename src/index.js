@@ -5,32 +5,18 @@ import dotenv from "dotenv";
 import connectDB from "./db/index.js";
 
 dotenv.config({
-    path:'./env'
-})
+  path: "./env",
+});
 
-connectDB();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+connectDB()
+  .then(() => {
+    app.listen(process.env.PORT || 4800, () => {
+      console.log(`server id running on port ${process.env.PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.log("mongodb connection failed", err);
+  });
 
 /*
 //code to connnect db as profeesional
