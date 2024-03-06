@@ -65,6 +65,7 @@ userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
+
 //tokens methods
 
 userSchema.methods.generateAccessToken = function () {

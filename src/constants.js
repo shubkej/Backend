@@ -1,1 +1,1 @@
-export const DB_NAME = "chaiyoutube";
+export const DB_NAME = "backend";
