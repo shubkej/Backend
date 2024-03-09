@@ -4,6 +4,7 @@ import { User } from "../models/user.models.js";
 import { uploadOnCloudinary } from "../utils/Cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { json } from "express";
+import jwt from "jsonwebtoken";
 
 // we make ka function to generate a access and referesh token
 const generateAccessAndRefereshToken = async (userId) => {
@@ -36,7 +37,7 @@ const registerUser = asyncHandler(async (req, res) => {
   // return response
 
   const { fullname, email, password, username } = req.body;
-  console.log("emal", email);
+  console.log("email", email);
 
   //check whether the input is empty or not
   if (
@@ -107,7 +108,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const { email, password, username } = req.body;
 
-  if (!username || !email) {
+  if (!(username || email)) {
     throw new ApiError(400, "username or email is required");
   }
 
@@ -154,23 +155,66 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
-      await User.findByIdAndUpdate(
-        req.user._id,
-        { $set: { refreshToken: undefined } },
-        { new: true }
-      );
-      const options = {
-        httpOnly: true,
-        secure: true,
-      };
+  await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: { refreshToken: undefined } },
+    { new: true }
+  );
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
 
-      return res
-      .status(200)
-      .clearCookie("accessToken", options)
-      .clearCookie("refreshToken", options)
-      .json(new ApiResponse(200, {}, "User logged out successfully"));
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
-export { registerUser, loginUser, logoutUser };
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken;
+
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "unauthorized request");
+  }
+
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    const user = await User.findById(decodedToken?._id);
+
+    if (!user) {
+      throw new ApiError(401, "invaild refresh token");
+    }
+
+    if (incomingRefreshToken !== user?.refreshToken) {
+      throw new ApiError(401, "refresh token  has expired or used");
+    }
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const { newAccessToken, newRefreshToken } =
+      await generateAccessAndRefereshToken(user._id);
+
+    return res
+      .status(200)
+      .cookie("accessToken", newAccessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
+      .json(
+        new ApiResponse(200, { accessToken, refreshToken: newRefreshToken })
+      );
+  } catch (error) {
+    throw new ApiError(401, error?.message || "invalid refresh token");
+  }
+});
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
 
 // multer gives you a req.files access

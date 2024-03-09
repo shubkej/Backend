@@ -51,7 +51,8 @@ const userSchema = new Schema(
   }
 );
 
-// pre middleware for save password with  bcryptjs for first time and when update in password by the user 
+//Pre middleware functions are executed one after another, when each middleware calls next.
+// pre middleware for save password with  bcryptjs for first time and when update in password by the user
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
@@ -59,12 +60,10 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-
 // user defined methods to check password is correct or not
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
-
 
 //tokens methods
 
@@ -83,7 +82,8 @@ userSchema.methods.generateAccessToken = function () {
   );
 };
 
-// refersh token 
+
+// refersh token
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
